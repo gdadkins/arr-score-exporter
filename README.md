@@ -124,8 +124,8 @@ The `sonarr_custom_scores.csv` file contains the following columns:
 - If you see timeout errors, try decreasing `MAX_WORKERS` or increasing `API_TIMEOUT`
 - Ensure your API key and URL are correctly configured
 - Make sure your *arr instances are running and accessible
-- Check that your API key has the necessary permissions.
-- For more detailed information, see the [Detailed Usage Guide](USAGE-GUIDE.md).
+- Check that your API key has the necessary permissions
+- For more detailed information, see the [Detailed Usage Guide](USAGE-GUIDE.md)
 
 ## License
 
@@ -139,3 +139,8 @@ The `sonarr_custom_scores.csv` file contains the following columns:
 ## Contributing
 
 Contributions, issues, and feature requests are welcome.
+
+## Future Enhacements
+
+- Provide command-line arguments using argprase to allow script changes without needing to edit the file.
+- Include configuration file for reading settings from.
