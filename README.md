@@ -23,7 +23,7 @@ The output is sorted CSV files that can help you analyze which media files have 
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/yourusername/arr-score-exporter.git # Replace with the actual URL later
+    git clone https://github.com/gdadkins/arr-score-exporter.git # Replace with the actual URL later
     cd arr-score-exporter
     ```
 
@@ -138,4 +138,4 @@ The `sonarr_custom_scores.csv` file contains the following columns:
 
 ## Contributing
 
-Contributions, issues, and feature requests are welcome! Please check the contribution guidelines (if available) or open an issue to discuss changes.
+Contributions, issues, and feature requests are welcome.

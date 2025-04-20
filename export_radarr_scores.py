@@ -349,7 +349,7 @@ if __name__ == "__main__":
         quality_profile_map = get_quality_profile_map(RADARR_URL, RADARR_API_KEY, main_session)
         # Only proceed if we could fetch profiles (basic connectivity check)
         if quality_profile_map is not None: # Check if it's not None (even if empty)
-             all_movies = get_all_movies(RADARR_URL, RADARR_API_KEY, main_session)
+            all_movies = get_all_movies(RADARR_URL, RADARR_API_KEY, main_session)
         else:
             print("ERROR: Could not fetch quality profiles, cannot proceed.")
 

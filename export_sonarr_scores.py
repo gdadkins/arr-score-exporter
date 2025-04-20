@@ -407,7 +407,7 @@ if __name__ == "__main__":
         if quality_profile_map is not None: # Check if it's not None (even if empty)
             all_sonarr_series = get_all_sonarr_series(SONARR_URL, SONARR_API_KEY, main_session)
         else:
-             print("ERROR: Could not fetch quality profiles, cannot proceed.")
+            print("ERROR: Could not fetch quality profiles, cannot proceed.")
 
 
     if all_sonarr_series: # Check if series map is not None and not empty
