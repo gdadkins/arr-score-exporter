@@ -1,0 +1,45 @@
+# Arr Score Exporter Configuration
+# Copy this file to config.yaml and update with your settings
+
+# Radarr Configuration
+radarr:
+  url: "http://localhost:7878"
+  api_key: "your_radarr_api_key_here"
+  enabled: true
+
+# Sonarr Configuration  
+sonarr:
+  url: "http://localhost:8989"
+  api_key: "your_sonarr_api_key_here"
+  enabled: true
+
+# API Configuration
+apis:
+  tmdb:
+    api_key: "your_tmdb_api_key_here"
+    enabled: true
+  imdb:
+    enabled: true
+
+# Export Settings
+export:
+  # Score sources to use (tmdb, imdb)
+  score_sources: ["tmdb", "imdb"]
+  
+  # Custom format names in Radarr/Sonarr
+  custom_formats:
+    imdb_score: "IMDb Score"
+    tmdb_score: "TMDb Score"
+  
+  # Retry settings
+  retry_attempts: 3
+  retry_delay: 1
+  
+  # Rate limiting (requests per second)
+  rate_limit: 10
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "arr_export.log"
