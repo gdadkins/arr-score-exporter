@@ -108,26 +108,8 @@ class BaseExporter(ABC):
     
     def _get_scores(self, external_ids: Dict[str, Optional[str]]) -> Dict[str, float]:
         """Get scores from external APIs."""
-        scores = {}
-        
-        # Get TMDb score
-        if self.config.is_tmdb_enabled():
-            tmdb_score = self._get_tmdb_score(external_ids)
-            if tmdb_score:
-                scores['tmdb'] = tmdb_score
-        
-        # Get IMDb score
-        if self.config.is_imdb_enabled() and external_ids.get('imdb_id'):
-            imdb_score = self.external_client.get_imdb_score(external_ids['imdb_id'])
-            if imdb_score:
-                scores['imdb'] = imdb_score
-        
-        return scores
-    
-    @abstractmethod
-    def _get_tmdb_score(self, external_ids: Dict[str, Optional[str]]) -> Optional[float]:
-        """Get TMDb score using available external IDs."""
-        pass
+        # For now, return empty scores as external API scoring is not implemented
+        return {}
     
     def _get_quality_profiles(self) -> Dict[int, str]:
         """Get and cache quality profiles."""

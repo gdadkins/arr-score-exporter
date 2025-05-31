@@ -48,26 +48,6 @@ class SonarrExporter(BaseExporter):
             'tvdb_id': str(item.get('tvdbId')) if item.get('tvdbId') else None
         }
     
-    def _get_tmdb_score(self, external_ids: Dict[str, Optional[str]]) -> Optional[float]:
-        """Get TMDb score for TV series."""
-        tvdb_id = external_ids.get('tvdb_id')
-        
-        if tvdb_id and self.config.tmdb_api_key:
-            # First, find TMDb ID using TVDB ID
-            tmdb_id = self.external_client.get_tmdb_id_from_tvdb(
-                tvdb_id=tvdb_id,
-                api_key=self.config.tmdb_api_key
-            )
-            
-            if tmdb_id:
-                # Now get the score using TMDb ID
-                return self.external_client.get_tmdb_score(
-                    tmdb_id=tmdb_id,
-                    media_type='tv',
-                    api_key=self.config.tmdb_api_key
-                )
-        
-        return None
     
     def _update_custom_formats(self, item_id: int, scores: Dict[str, float]) -> bool:
         """Update custom formats in Sonarr with scores."""

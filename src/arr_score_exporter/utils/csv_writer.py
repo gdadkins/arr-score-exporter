@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class CSVWriter:
     """Utility class for writing CSV files."""
     
-    def __init__(self, output_dir: str = "exports"):
+    def __init__(self, output_dir: str = "reports"):
         """Initialize CSV writer."""
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)

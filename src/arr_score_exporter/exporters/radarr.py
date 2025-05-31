@@ -48,16 +48,6 @@ class RadarrExporter(BaseExporter):
             'tvdb_id': None  # Not applicable for movies
         }
     
-    def _get_tmdb_score(self, external_ids: Dict[str, Optional[str]]) -> Optional[float]:
-        """Get TMDb score for movie."""
-        tmdb_id = external_ids.get('tmdb_id')
-        if tmdb_id and self.config.tmdb_api_key:
-            return self.external_client.get_tmdb_score(
-                tmdb_id=tmdb_id,
-                media_type='movie',
-                api_key=self.config.tmdb_api_key
-            )
-        return None
     
     def _update_custom_formats(self, item_id: int, scores: Dict[str, float]) -> bool:
         """Update custom formats in Radarr with scores."""

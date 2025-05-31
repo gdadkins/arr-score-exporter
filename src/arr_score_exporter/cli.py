@@ -194,22 +194,6 @@ def test_config(ctx):
     else:
         click.echo("Sonarr: Disabled")
     
-    # Test TMDb API
-    if config.is_tmdb_enabled():
-        click.echo("Testing TMDb API... ", nl=False)
-        try:
-            from .api_client import ExternalApiClient
-            client = ExternalApiClient()
-            # Test with a known movie ID (The Godfather)
-            score = client.get_tmdb_score(238, 'movie', config.tmdb_api_key)
-            if score:
-                click.echo("✅ OK")
-            else:
-                click.echo("❌ Failed")
-        except Exception as e:
-            click.echo(f"❌ Failed: {e}")
-    else:
-        click.echo("TMDb API: Disabled")
 
 
 def main():

@@ -91,14 +91,14 @@ API connectivity test failed
    - Copy the API Key exactly (no extra spaces)
    - Test with curl:
    ```bash
-   curl "http://192.168.3.229:7878/api/v3/system/status" \
+   curl "http://192.168.1.100:7878/api/v3/system/status" \
         -H "X-Api-Key: YOUR_API_KEY"
    ```
 
 3. **Check URL Format**:
    ```yaml
    radarr:
-     url: "http://192.168.3.229:7878"  # No trailing slash, use actual IP
+     url: "http://192.168.1.100:7878"  # No trailing slash, use actual IP
      api_key: "your_key_here"
      enabled: true
    ```
@@ -106,12 +106,12 @@ API connectivity test failed
 4. **Network Connectivity**:
    ```bash
    # Test basic connectivity
-   ping 192.168.3.229
+   ping 192.168.1.100
    
    # Test port accessibility
-   telnet 192.168.3.229 7878
+   telnet 192.168.1.100 7878
    # or
-   nc -zv 192.168.3.229 7878
+   nc -zv 192.168.1.100 7878
    ```
 
 #### Issue: "Request failed after 3 attempts"
@@ -485,7 +485,7 @@ arr-export test-config
 
 # Test specific service
 echo "Testing Radarr connectivity..."
-curl -s "http://192.168.3.229:7878/api/v3/system/status" \
+curl -s "http://192.168.1.100:7878/api/v3/system/status" \
      -H "X-Api-Key: YOUR_KEY" | jq
 
 # Validate YAML syntax
@@ -495,7 +495,7 @@ python -c "import yaml; print('✅ YAML valid')" 2>/dev/null || echo "❌ YAML s
 #### Environment Variable Testing
 ```bash
 # Test with environment variables
-export RADARR_URL="http://192.168.3.229:7878"
+export RADARR_URL="http://192.168.1.100:7878"
 export RADARR_API_KEY="your_key_here"
 export ARR_MAX_WORKERS="2"
 export ARR_LOG_LEVEL="DEBUG"
@@ -590,7 +590,7 @@ ConnectionError: [Errno 111] Connection refused
 1. **Check Service Status**:
    ```bash
    # Check if Radarr is running
-   curl http://192.168.3.229:7878
+   curl http://192.168.1.100:7878
    
    # Check from same machine
    curl http://localhost:7878
@@ -599,11 +599,11 @@ ConnectionError: [Errno 111] Connection refused
 2. **Network Connectivity**:
    ```bash
    # Test network path
-   ping 192.168.3.229
+   ping 192.168.1.100
    
    # Test port connectivity
-   telnet 192.168.3.229 7878
-   nc -zv 192.168.3.229 7878
+   telnet 192.168.1.100 7878
+   nc -zv 192.168.1.100 7878
    ```
 
 3. **Firewall Rules**:
@@ -751,16 +751,16 @@ arr-export test-config
 ```bash
 # Test Radarr API with detailed output
 echo "Testing Radarr API..."
-curl -v "http://192.168.3.229:7878/api/v3/system/status" \
+curl -v "http://192.168.1.100:7878/api/v3/system/status" \
      -H "X-Api-Key: YOUR_KEY" \
      -H "Content-Type: application/json"
 
 # Test with specific endpoints
-curl "http://192.168.3.229:7878/api/v3/movie?pageSize=1" \
+curl "http://192.168.1.100:7878/api/v3/movie?pageSize=1" \
      -H "X-Api-Key: YOUR_KEY" | jq
 
 # Test quality profiles
-curl "http://192.168.3.229:7878/api/v3/qualityprofile" \
+curl "http://192.168.1.100:7878/api/v3/qualityprofile" \
      -H "X-Api-Key: YOUR_KEY" | jq
 ```
 
@@ -954,7 +954,7 @@ time sqlite3 ~/.arr-score-exporter/library.db "SELECT COUNT(*) FROM media_files;
    python -c "import yaml; yaml.safe_load(open('config.yaml'))"
    
    # Test API connectivity
-   curl -s "http://192.168.3.229:7878/api/v3/system/status" \
+   curl -s "http://192.168.1.100:7878/api/v3/system/status" \
         -H "X-Api-Key: YOUR_KEY" | jq .appName
    ```
 
@@ -981,8 +981,8 @@ time sqlite3 ~/.arr-score-exporter/library.db "SELECT COUNT(*) FROM media_files;
 - Package Version: [Enhanced v2.0]
 
 **Arr Applications:**
-- Radarr Version: [4.0.0] at [http://192.168.3.229:7878]
-- Sonarr Version: [3.0.0] at [http://192.168.3.229:8989]
+- Radarr Version: [4.0.0] at [http://192.168.1.100:7878]
+- Sonarr Version: [3.0.0] at [http://192.168.1.100:8989]
 - Library Size: [~3,000 movies, ~500 series]
 
 **Configuration:**

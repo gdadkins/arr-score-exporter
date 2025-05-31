@@ -516,14 +516,18 @@ class EnhancedBaseExporter(ABC):
         service_type = self.get_service_type()
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
+        # Ensure reports directory exists
+        reports_dir = Path("reports")
+        reports_dir.mkdir(exist_ok=True)
+        
         # CSV output
         if 'csv' in self.config.output_formats:
-            csv_path = Path(f"{service_type}_scores_{timestamp}.csv")
+            csv_path = reports_dir / f"{service_type}_scores_{timestamp}.csv"
             self._write_csv(media_files, csv_path)
         
         # JSON output
         if 'json' in self.config.output_formats:
-            json_path = Path(f"{service_type}_scores_{timestamp}.json")
+            json_path = reports_dir / f"{service_type}_scores_{timestamp}.json"
             self._write_json(media_files, json_path)
     
     def _write_csv(self, media_files: List[MediaFile], output_path: Path):

@@ -74,8 +74,8 @@ arr-export test-config
 
 📋 Configuration Status:
   ✅ Config file loaded: config.yaml
-  ✅ Radarr: http://192.168.3.229:7878
-  ✅ Sonarr: http://192.168.3.229:8989
+  ✅ Radarr: http://192.168.1.100:7878
+  ✅ Sonarr: http://192.168.1.100:8989
 
 🌐 API Connectivity:
   ✅ Radarr API: Connected (3,231 movies)
@@ -419,13 +419,13 @@ except Exception as e:
 ```yaml
 # Radarr Configuration
 radarr:
-  url: "http://192.168.3.229:7878"
+  url: "http://192.168.1.100:7878"
   api_key: "your_radarr_api_key_here"
   enabled: true
 
 # Sonarr Configuration
 sonarr:
-  url: "http://192.168.3.229:8989"
+  url: "http://192.168.1.100:8989"
   api_key: "your_sonarr_api_key_here"
   enabled: true
 
