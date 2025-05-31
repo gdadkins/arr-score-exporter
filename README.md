@@ -48,7 +48,8 @@ cp config.yaml.example config.yaml
 arr-export test-config
 
 # 4. Generate reports
-arr-export radarr  # Creates dashboard + CSV export
+arr-export-enhanced report --service radarr # Creates HTML5 enriched export
+arr-export radarr  # Creates CSV export
 ```
 
 ## 📋 Requirements
@@ -151,10 +152,10 @@ arr-export test-config
 arr-export test-config
 
 # Export Radarr with dashboard
-arr-export radarr
+arr-export-enhanced report --service radarr
 
 # Export Sonarr with dashboard  
-arr-export sonarr
+arr-export-enhanced report --service sonarr
 
 # Export both services
 arr-export both
@@ -179,11 +180,11 @@ arr-export --output-dir /path/to/exports radarr
 🚀 Starting Radarr export...
 
 📋 Configuration:
-  ✅ Radarr: http://localhost:7878 (3,231 movies)
+  ✅ Radarr: http://localhost:7878 (3000 movies)
   💾 Database: ~/.arr-score-exporter/library.db
   ⚙️ Workers: 5 parallel threads
 
-🔄 Processing: ██████████ 100% 3,231/3,231
+🔄 Processing: ██████████ 100% 3000/3000
 
 📈 Analysis Results:
   🎯 Upgrade candidates: 1,252 files identified

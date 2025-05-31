@@ -137,7 +137,7 @@ Connection timeout or network issues
 
 ## Enhanced Database Issues
 
-#### Issue: "Database is locked" (RESOLVED ✅)
+#### Issue: "Database is locked"
 ```
 sqlite3.OperationalError: database is locked
 Error storing media file: database is locked

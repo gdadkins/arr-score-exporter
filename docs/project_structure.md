@@ -11,8 +11,6 @@ arr-score-exporter/
 ├── config.yaml.example                # Configuration template
 ├── arr_score_exporter.py              # Main CLI script (legacy compatible)
 ├── run_enhanced.py                     # Windows-friendly launcher
-├── CLAUDE.md                           # Claude Code development instructions
-├── TODO.md                             # Development roadmap
 ├── USAGE-GUIDE.md                      # Detailed usage documentation
 │
 ├── src/                                # Enhanced modular source code
