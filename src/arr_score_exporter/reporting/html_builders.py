@@ -18,6 +18,109 @@ class HTMLSectionBuilder:
         """Initialize section builder with optional database manager."""
         self.db_manager = db_manager
     
+    def _get_format_size_data(self, service_type: str) -> Dict[str, float]:
+        """Get total size data for each custom format from database."""
+        format_sizes = {}
+        if not self.db_manager:
+            return format_sizes
+        
+        try:
+            with self.db_manager._get_connection() as conn:
+                rows = conn.execute("""
+                    SELECT custom_formats_json, size_bytes
+                    FROM media_files 
+                    WHERE service_type = ? AND custom_formats_json IS NOT NULL AND size_bytes IS NOT NULL
+                """, (service_type,)).fetchall()
+            
+            for row in rows:
+                try:
+                    import json
+                    formats = json.loads(row[0])
+                    file_size_gb = row[1] / (1024**3) if row[1] else 0
+                    
+                    for cf in formats:
+                        format_name = cf.get("name", "Unknown")
+                        if format_name not in format_sizes:
+                            format_sizes[format_name] = 0.0
+                        format_sizes[format_name] += file_size_gb
+                        
+                except (json.JSONDecodeError, TypeError):
+                    continue
+                    
+        except Exception as e:
+            # Gracefully handle any database errors
+            print(f"Warning: Could not retrieve format size data: {e}")
+            
+        return format_sizes
+    
+    def _get_accurate_format_stats(self, service_type: str) -> Dict[str, Dict[str, float]]:
+        """Get accurate format statistics with correct file counts and size data."""
+        format_stats = {}
+        if not self.db_manager:
+            return format_stats
+        
+        try:
+            with self.db_manager._get_connection() as conn:
+                rows = conn.execute("""
+                    SELECT custom_formats_json, total_score, size_bytes, unique_identifier
+                    FROM media_files 
+                    WHERE service_type = ? AND custom_formats_json IS NOT NULL
+                """, (service_type,)).fetchall()
+            
+            # Track unique files per format to get accurate counts
+            format_data = {}
+            
+            for row in rows:
+                try:
+                    import json
+                    formats = json.loads(row[0])
+                    total_score = row[1]
+                    file_size_gb = (row[2] / (1024**3)) if row[2] else 0
+                    file_id = row[3]
+                    
+                    for cf in formats:
+                        format_name = cf.get("name", "Unknown")
+                        
+                        if format_name not in format_data:
+                            format_data[format_name] = {
+                                'unique_files': set(),
+                                'total_score_sum': 0,
+                                'total_size_gb': 0
+                            }
+                        
+                        # Add this file to the unique set for this format
+                        format_data[format_name]['unique_files'].add(file_id)
+                        format_data[format_name]['total_score_sum'] += total_score
+                        format_data[format_name]['total_size_gb'] += file_size_gb
+                        
+                except (json.JSONDecodeError, TypeError):
+                    continue
+            
+            # Convert to final format stats
+            for format_name, data in format_data.items():
+                file_count = len(data['unique_files'])
+                if file_count > 0:
+                    format_stats[format_name] = {
+                        'file_count': file_count,
+                        'avg_score': data['total_score_sum'] / file_count,
+                        'total_size_gb': data['total_size_gb']
+                    }
+                    
+        except Exception as e:
+            # Gracefully handle any database errors
+            print(f"Warning: Could not retrieve accurate format statistics: {e}")
+            
+        return format_stats
+    
+    @staticmethod
+    def _format_size_display(size_gb: float) -> str:
+        """Format size for display, converting to TB when appropriate."""
+        if size_gb >= 1024:  # Convert to TB when >= 1024 GB
+            size_tb = size_gb / 1024
+            return f"{size_tb:.1f} TB"
+        else:
+            return f"{size_gb:.1f} GB"
+    
     @staticmethod
     def build_achievements_section(health_report: LibraryHealthReport) -> str:
         """Build achievements section."""
@@ -166,25 +269,29 @@ class HTMLSectionBuilder:
         </div>
         """
     
-    @staticmethod
-    def build_format_analysis_section(health_report: LibraryHealthReport) -> str:
+    def build_format_analysis_section(self, health_report: LibraryHealthReport) -> str:
         """Build custom format analysis section."""
         if not health_report.format_effectiveness:
             return ""
         
-        # Convert format_effectiveness list to dict format
-        format_data = {}
-        for fmt_eff in health_report.format_effectiveness:
-            format_data[fmt_eff.format_name] = {
-                'count': fmt_eff.usage_count,
-                'avg_score': fmt_eff.avg_score_contribution,
-                'total_size_gb': 0  # We don't have this data in the new structure
-            }
+        # Get accurate format statistics directly from database
+        format_stats = {}
+        if self.db_manager:
+            format_stats = self._get_accurate_format_stats(health_report.service_type)
+        
+        # If database query failed, fall back to the health report data
+        if not format_stats:
+            for fmt_eff in health_report.format_effectiveness:
+                format_stats[fmt_eff.format_name] = {
+                    'file_count': fmt_eff.files_with_format,
+                    'avg_score': fmt_eff.avg_score_contribution,
+                    'total_size_gb': 0.0
+                }
         
         # Sort formats by file count
         sorted_formats = sorted(
-            format_data.items(),
-            key=lambda x: x[1]['count'],
+            format_stats.items(),
+            key=lambda x: x[1]['file_count'],
             reverse=True
         )[:15]  # Top 15 formats
         
@@ -192,12 +299,13 @@ class HTMLSectionBuilder:
         for fmt, stats in sorted_formats:
             import html
             escaped_format = html.escape(fmt)
+            size_display = self._format_size_display(stats.get('total_size_gb', 0))
             rows.append(f"""
                 <tr>
                     <td>{escaped_format}</td>
-                    <td>{stats['count']:,}</td>
+                    <td>{stats['file_count']:,}</td>
                     <td class="{'positive' if stats['avg_score'] > 0 else 'negative'}">{stats['avg_score']:.1f}</td>
-                    <td>{stats.get('total_size_gb', 0):.1f} GB</td>
+                    <td>{size_display}</td>
                 </tr>
             """)
         
@@ -222,25 +330,6 @@ class HTMLSectionBuilder:
         </div>
         """
     
-    @staticmethod
-    def build_recommendations_section(health_report: LibraryHealthReport) -> str:
-        """Build recommendations section."""
-        if not health_report.recommendations:
-            return ""
-        
-        recommendations_html = HTMLSectionBuilder._build_status_list(
-            health_report.recommendations,
-            "Analysis complete. No specific recommendations at this time."
-        )
-        
-        return f"""
-        <div class="section">
-            <h2>Recommendations</h2>
-            <ul class="recommendations-list">
-                {recommendations_html}
-            </ul>
-        </div>
-        """
     
     @staticmethod
     def build_intelligent_categories_section(health_report: LibraryHealthReport) -> str:
@@ -334,82 +423,142 @@ class HTMLSectionBuilder:
     
     @staticmethod
     def build_historical_trends_section(health_report: LibraryHealthReport) -> str:
-        """Build historical trends section if available."""
-        if not hasattr(health_report, 'historical_analysis') or not health_report.historical_analysis:
-            return ""
+        """Build historical trends section with fallback for new installations."""
+        # Check if we have historical analysis data
+        has_trends = (hasattr(health_report, 'historical_analysis') and 
+                     health_report.historical_analysis and 
+                     health_report.historical_analysis.get('total_changes', 0) > 0)
         
-        trends = health_report.historical_analysis
-        
-        # Build trend cards
-        trend_cards = []
-        
-        # Show improvement/degradation velocity
-        if 'improvement_velocity' in trends and 'degradation_velocity' in trends:
-            net_velocity = trends.get('net_velocity', 0)
-            trend_class = 'positive' if net_velocity > 0 else 'negative' if net_velocity < 0 else 'neutral'
-            trend_cards.append(f"""
-                <div class="trend-card {trend_class}">
-                    <h4>Weekly Change Rate</h4>
-                    <div class="trend-value">{net_velocity:+.1f}</div>
-                    <div class="trend-period">Files/week (net)</div>
-                </div>
-            """)
+        if has_trends:
+            trends = health_report.historical_analysis
             
-            trend_cards.append(f"""
-                <div class="trend-card positive">
-                    <h4>Improvements</h4>
-                    <div class="trend-value">{trends.get('improvement_velocity', 0):.1f}</div>
-                    <div class="trend-period">Files/week</div>
-                </div>
-            """)
+            # Build trend cards with actual data
+            trend_cards = []
             
-            trend_cards.append(f"""
-                <div class="trend-card negative">
-                    <h4>Degradations</h4>
-                    <div class="trend-value">{trends.get('degradation_velocity', 0):.1f}</div>
-                    <div class="trend-period">Files/week</div>
-                </div>
-            """)
-        
-        # Build patterns list
-        patterns = trends.get('patterns', [])
-        patterns_html = HTMLSectionBuilder._build_status_list(
-            patterns[:5],  # Show top 5 patterns
-            "No significant patterns detected yet."
-        )
-        
-        # Build recommendations
-        recommendations = trends.get('recommendations', [])
-        recommendations_html = HTMLSectionBuilder._build_status_list(
-            recommendations[:5],  # Show top 5 recommendations
-            "Continue monitoring for trend-based insights."
-        )
-        
-        return f"""
-        <div class="section">
-            <h2>Historical Trends</h2>
+            # Show improvement/degradation velocity
+            if 'improvement_velocity' in trends and 'degradation_velocity' in trends:
+                net_velocity = trends.get('net_velocity', 0)
+                trend_class = 'positive' if net_velocity > 0 else 'negative' if net_velocity < 0 else 'neutral'
+                trend_cards.append(f"""
+                    <div class="trend-card {trend_class}">
+                        <h4>Weekly Change Rate</h4>
+                        <div class="trend-value">{net_velocity:+.1f}</div>
+                        <div class="trend-period">Files/week (net)</div>
+                    </div>
+                """)
+                
+                trend_cards.append(f"""
+                    <div class="trend-card positive">
+                        <h4>Improvements</h4>
+                        <div class="trend-value">{trends.get('improvement_velocity', 0):.1f}</div>
+                        <div class="trend-period">Files/week</div>
+                    </div>
+                """)
+                
+                trend_cards.append(f"""
+                    <div class="trend-card negative">
+                        <h4>Degradations</h4>
+                        <div class="trend-value">{trends.get('degradation_velocity', 0):.1f}</div>
+                        <div class="trend-period">Files/week</div>
+                    </div>
+                """)
             
-            <div class="trend-cards">
-                {''.join(trend_cards)}
-            </div>
+            # Build patterns list
+            patterns = trends.get('patterns', [])
+            patterns_html = HTMLSectionBuilder._build_status_list(
+                patterns[:5],  # Show top 5 patterns
+                "No significant patterns detected yet."
+            )
             
-            <div class="trend-analysis">
-                <div class="trend-patterns">
-                    <h3>Detected Patterns</h3>
-                    <ul class="pattern-list">
-                        {patterns_html}
-                    </ul>
+            # Build recommendations
+            recommendations = trends.get('recommendations', [])
+            recommendations_html = HTMLSectionBuilder._build_status_list(
+                recommendations[:5],  # Show top 5 recommendations
+                "Continue monitoring for trend-based insights."
+            )
+            
+            return f"""
+            <div class="section">
+                <h2>Historical Trends</h2>
+                <div class="data-availability-notice">
+                    <span class="availability-status available">✓ {trends.get('total_changes', 0)} score changes tracked</span>
                 </div>
                 
-                <div class="trend-recommendations">
-                    <h3>Trend-Based Recommendations</h3>
-                    <ul class="trend-rec-list">
-                        {recommendations_html}
-                    </ul>
+                <div class="trend-cards">
+                    {''.join(trend_cards)}
+                </div>
+                
+                <div class="trend-analysis">
+                    <div class="trend-patterns">
+                        <h3>Detected Patterns</h3>
+                        <ul class="pattern-list">
+                            {patterns_html}
+                        </ul>
+                    </div>
+                    
+                    <div class="trend-recommendations">
+                        <h3>Trend-Based Recommendations</h3>
+                        <ul class="trend-rec-list">
+                            {recommendations_html}
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div>
-        """
+            """
+        else:
+            # Show placeholder content when no historical data is available yet
+            return f"""
+            <div class="section">
+                <h2>Historical Trends</h2>
+                <div class="data-availability-notice">
+                    <span class="availability-status pending">⏳ No historical data available yet</span>
+                </div>
+                
+                <div class="historical-placeholder">
+                    <div class="placeholder-icon">📈</div>
+                    <h3>Building Your Library's History</h3>
+                    <p>Historical trends will appear here once you've run exports multiple times over different days. 
+                    This section tracks how your library's quality evolves over time.</p>
+                    
+                    <div class="what-youll-see">
+                        <h4>What You'll See Here:</h4>
+                        <ul>
+                            <li><strong>Score Velocity:</strong> Weekly improvement/degradation rates</li>
+                            <li><strong>Library Patterns:</strong> Trends in your collection quality</li>
+                            <li><strong>Change Detection:</strong> Which files have been upgraded or downgraded</li>
+                            <li><strong>Optimization Insights:</strong> Data-driven recommendations for library health</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="how-it-works">
+                        <h4>How Historical Tracking Works:</h4>
+                        <ul>
+                            <li>Each time you run <code>arr-export-enhanced</code>, file scores are recorded</li>
+                            <li>When scores change (files upgraded/downgraded), it's tracked in the database</li>
+                            <li>After a few weeks of data, patterns and trends emerge</li>
+                            <li>The system identifies whether your library is improving or needs attention</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="next-steps">
+                        <div class="step-card">
+                            <h4>📅 Schedule Regular Exports</h4>
+                            <p>Run exports weekly to build meaningful trend data</p>
+                        </div>
+                        
+                        <div class="step-card">
+                            <h4>🔄 Upgrade Your Files</h4>
+                            <p>When you upgrade files, the system will track the improvements</p>
+                        </div>
+                        
+                        <div class="step-card">
+                            <h4>📊 Check Back Later</h4>
+                            <p>Return in a week to see your first trend data</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """
     
     @staticmethod
     def build_dashboard_controls() -> str:

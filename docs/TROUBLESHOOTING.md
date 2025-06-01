@@ -15,39 +15,12 @@ arr-export-enhanced radarr --verbose
 sqlite3 ~/.arr-score-exporter/library.db "PRAGMA integrity_check;"
 ```
 
-## Recently Fixed Issues ✅
-
-### HTML Reports Broken - Interactive Features Not Working (RESOLVED)
-**Error**: Charts not displaying, tooltips not working, "dashboardData already declared" JavaScript error
-**Symptoms**: No visual charts, CSV export buttons missing, pagination broken
-
-**Status**: **CRITICAL FIX COMPLETED** - All interactive functionality restored:
-- ✅ **Bootstrap Integration**: Added Bootstrap 5 CSS/JS libraries 
-- ✅ **Chart Rendering**: Fixed Chart.js with proper red/green/grey color coding
-- ✅ **DataTables**: Restored pagination, search, and CSV/Excel/PDF export
-- ✅ **JavaScript Variables**: Fixed `dashboardData` redeclaration error
-- ✅ **Tooltip System**: Updated to Bootstrap 5 API (`new bootstrap.Tooltip()`)
-
-**Technical Details**: The refactoring accidentally stripped out critical JavaScript dependencies and caused variable conflicts. All functionality now restored with full feature parity.
-
-### Database Locking (RESOLVED)
-**Error**: `sqlite3.OperationalError: database is locked`
-
 **Status**: **FIXED** in v2.0 with enhanced connection management and WAL mode.
 
 If you still see this error:
 1. Ensure you're using the enhanced CLI: `arr-export-enhanced`
 2. Check write permissions: `ls -la ~/.arr-score-exporter/`
 3. Reset database if needed: `rm ~/.arr-score-exporter/library.db`
-
-### File Size Data Not Tracked (RESOLVED)
-**Error**: Scatter plot shows "File size data not tracked" message
-**Status**: **FIXED** in v2.0.1 - scatter plot now uses all library files with size data
-
-### Custom Format Analysis Empty (RESOLVED)
-**Error**: Custom format effectiveness showing no results
-
-**Status**: **FIXED** in v2.0 with improved correlation analysis logic.
 
 ## Configuration Issues
 
