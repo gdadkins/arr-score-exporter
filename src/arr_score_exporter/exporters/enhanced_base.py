@@ -57,7 +57,7 @@ class ExportConfig:
     # Analysis settings
     enable_analysis: bool = True
     identify_upgrade_candidates: bool = True
-    min_upgrade_score_threshold: int = -50
+    min_upgrade_score_threshold: int = 50
 
 
 @dataclass

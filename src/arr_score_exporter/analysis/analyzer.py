@@ -82,7 +82,7 @@ class IntelligentAnalyzer:
         self.db = db_manager
     
     def identify_upgrade_candidates(self, service_type: str, 
-                                  min_score_threshold: int = -50) -> List[UpgradeCandidate]:
+                                  min_score_threshold: int = 50) -> List[UpgradeCandidate]:
         """
         Intelligently identify files that are candidates for upgrade.
         
@@ -159,8 +159,8 @@ class IntelligentAnalyzer:
                     recommendation=recommendation
                 ))
         
-        # Sort by priority, then by potential score gain
-        candidates.sort(key=lambda c: (c.priority, -(c.potential_score_gain or 0)))
+        # Sort by worst score first (lowest/most negative scores first), then by priority
+        candidates.sort(key=lambda c: (c.media_file.total_score, c.priority))
         
         return candidates
     
@@ -457,7 +457,7 @@ class IntelligentAnalyzer:
         
         return cleaned_categories
     
-    def generate_library_health_report(self, service_type: str, min_score_threshold: int = -50) -> LibraryHealthReport:
+    def generate_library_health_report(self, service_type: str, min_score_threshold: int = 50) -> LibraryHealthReport:
         """Generate comprehensive library health report."""
         stats = self.db.calculate_library_stats(service_type)
         candidates = self.identify_upgrade_candidates(service_type, min_score_threshold)

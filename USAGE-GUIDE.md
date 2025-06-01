@@ -2,6 +2,24 @@
 
 Detailed examples and workflows for the *Arr Custom Format Score Exporter.
 
+## ⚠️ Important: Data Collection vs Report Generation
+
+**After upgrading files in Radarr/Sonarr, upgrade opportunities won't update until you refresh the data:**
+
+```bash
+# ✅ CORRECT: Refresh data after file upgrades
+arr-export-enhanced radarr      # Downloads fresh data from Radarr
+arr-export-enhanced sonarr      # Downloads fresh data from Sonarr
+
+# ❌ WRONG: Only reads cached data (outdated after upgrades)  
+arr-export-enhanced report --service radarr    # No API calls, uses cached data
+arr-export-enhanced report --service sonarr    # No API calls, uses cached data
+```
+
+**Key Difference:**
+- `arr-export-enhanced radarr/sonarr` = **Fresh data collection** + report generation
+- `arr-export-enhanced report --service X` = **Cached data only** + report generation
+
 ## Two Export Modes
 
 ### 1. Basic CSV Export (`arr-export`)
@@ -34,19 +52,29 @@ arr-export --config production.yaml radarr
 ```
 
 ### Enhanced Analysis Workflow
+
+#### Two-Step Process
 ```bash
-# Step 1: Collect data and generate CSV
+# Step 1: Collect fresh data from Radarr (connects to API)
 arr-export-enhanced radarr
 
-# Step 2: Generate interactive dashboard
+# Step 2: Generate interactive dashboard from cached data (no API calls)
 arr-export-enhanced report --service radarr
 
 # One-time setup: Validate configuration
 arr-export-enhanced validate-config
-
-# Generate for both services
-arr-export-enhanced report --service both
 ```
+
+#### When to Use Each Command
+- **Use `arr-export-enhanced radarr/sonarr`** when:
+  - You've upgraded files and want to see updated scores
+  - You want fresh data from your Arr applications
+  - You need both data collection AND report generation
+  
+- **Use `arr-export-enhanced report --service radarr/sonarr`** when:
+  - You want to regenerate reports from existing data (fast)
+  - You want different report settings without re-downloading data
+  - You're experimenting with report layouts or limits
 
 ## Configuration Examples
 
@@ -118,18 +146,31 @@ arr-export radarr
 ### Weekly Library Health Check
 ```bash
 #!/bin/bash
-# weekly_check.sh
+# weekly_check.sh - Refresh data and generate reports
 arr-export test-config
-arr-export-enhanced report --service both
+arr-export-enhanced radarr      # Fresh data + report
+arr-export-enhanced sonarr      # Fresh data + report
 # Results saved with timestamps for tracking improvements
 ```
 
+### After Upgrading Files (CRITICAL WORKFLOW)
+```bash
+# You've upgraded movies/episodes and want to see updated scores
+arr-export-enhanced radarr      # Gets fresh data from Radarr
+arr-export-enhanced sonarr      # Gets fresh data from Sonarr
+
+# Or if you only want to refresh reports from existing data:
+arr-export-enhanced report --service radarr
+arr-export-enhanced report --service sonarr
+```
+
 ### Find Upgrade Candidates
-1. Run `arr-export-enhanced report --service radarr`
-2. Open generated HTML dashboard
+1. **First, ensure you have fresh data**: `arr-export-enhanced radarr`
+2. Open generated HTML dashboard (or use `arr-export-enhanced report --service radarr` for cached data)
 3. Review "Upgrade Candidates" section
 4. Focus on Priority 1 and 2 items first
 5. Look for specific format recommendations
+6. **After upgrading**: Re-run `arr-export-enhanced radarr` to see updated scores
 
 ### Track Library Improvements
 - Run exports regularly (weekly/monthly)
@@ -142,22 +183,28 @@ arr-export-enhanced report --service both
 ### Cron Job for Regular Reports
 ```bash
 # Add to crontab: crontab -e
-# Run every Sunday at 2 AM
-0 2 * * 0 cd /path/to/arr-score-exporter && arr-export-enhanced report --service both
+# Run every Sunday at 2 AM - collect fresh data
+0 2 * * 0 cd /path/to/arr-score-exporter && arr-export-enhanced radarr && arr-export-enhanced sonarr
 ```
 
 ### Windows Task Scheduler
 - Action: Start program
 - Program: `python`
-- Arguments: `arr-export-enhanced report --service both`
+- Arguments: `arr-export-enhanced radarr` (collect fresh data)
 - Start in: `C:\path\to\arr-score-exporter`
+- Create separate tasks for each service if needed
 
 ### Docker Usage
 ```bash
-# Run in Docker container
+# Run in Docker container - collect fresh data
 docker run -v /config:/config -v /exports:/exports \
   arr-score-exporter:latest \
-  arr-export-enhanced report --service both
+  arr-export-enhanced radarr
+
+# For report-only generation from cached data
+docker run -v /config:/config -v /exports:/exports \
+  arr-score-exporter:latest \
+  arr-export-enhanced report --service radarr
 ```
 
 ## Performance Tips

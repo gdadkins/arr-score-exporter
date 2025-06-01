@@ -66,7 +66,7 @@ def radarr(ctx):
     config = ctx.obj['config']
     
     if not config.is_radarr_enabled():
-        click.echo("❌ Radarr is disabled in configuration", err=True)
+        click.echo("[ERROR] Radarr is disabled in configuration", err=True)
         return
     
     click.echo("Starting Radarr score export...")
@@ -75,14 +75,14 @@ def radarr(ctx):
         exporter = RadarrExporter(config)
         results = exporter.export_scores()
         
-        click.echo(f"✅ Export completed!")
+        click.echo(f"[SUCCESS] Export completed!")
         click.echo(f"   Processed: {results['processed']} movies")
         click.echo(f"   Updated: {results['updated']} movies")
         if results['errors'] > 0:
-            click.echo(f"   ⚠️  Errors: {results['errors']} movies")
+            click.echo(f"   [WARNING] Errors: {results['errors']} movies")
     
     except Exception as e:
-        click.echo(f"❌ Export failed: {e}", err=True)
+        click.echo(f"[ERROR] Export failed: {e}", err=True)
         sys.exit(1)
 
 
@@ -93,7 +93,7 @@ def sonarr(ctx):
     config = ctx.obj['config']
     
     if not config.is_sonarr_enabled():
-        click.echo("❌ Sonarr is disabled in configuration", err=True)
+        click.echo("[ERROR] Sonarr is disabled in configuration", err=True)
         return
     
     click.echo("Starting Sonarr score export...")
@@ -102,14 +102,14 @@ def sonarr(ctx):
         exporter = SonarrExporter(config)
         results = exporter.export_scores()
         
-        click.echo(f"✅ Export completed!")
+        click.echo(f"[SUCCESS] Export completed!")
         click.echo(f"   Processed: {results['processed']} series")
         click.echo(f"   Updated: {results['updated']} series")
         if results['errors'] > 0:
-            click.echo(f"   ⚠️  Errors: {results['errors']} series")
+            click.echo(f"   [WARNING] Errors: {results['errors']} series")
     
     except Exception as e:
-        click.echo(f"❌ Export failed: {e}", err=True)
+        click.echo(f"[ERROR] Export failed: {e}", err=True)
         sys.exit(1)
 
 
@@ -132,7 +132,7 @@ def both(ctx):
             for key in total_results:
                 total_results[key] += radarr_results[key]
         except Exception as e:
-            click.echo(f"❌ Radarr export failed: {e}", err=True)
+            click.echo(f"[ERROR] Radarr export failed: {e}", err=True)
             total_results["errors"] += 1
     else:
         click.echo("Radarr is disabled, skipping...")
@@ -146,16 +146,16 @@ def both(ctx):
             for key in total_results:
                 total_results[key] += sonarr_results[key]
         except Exception as e:
-            click.echo(f"❌ Sonarr export failed: {e}", err=True)
+            click.echo(f"[ERROR] Sonarr export failed: {e}", err=True)
             total_results["errors"] += 1
     else:
         click.echo("Sonarr is disabled, skipping...")
     
-    click.echo(f"✅ All exports completed!")
+    click.echo(f"[SUCCESS] All exports completed!")
     click.echo(f"   Total processed: {total_results['processed']}")
     click.echo(f"   Total updated: {total_results['updated']}")
     if total_results['errors'] > 0:
-        click.echo(f"   ⚠️  Total errors: {total_results['errors']}")
+        click.echo(f"   [WARNING] Total errors: {total_results['errors']}")
 
 
 @cli.command()
@@ -172,11 +172,11 @@ def test_config(ctx):
         try:
             radarr_exporter = RadarrExporter(config)
             if radarr_exporter.test_connection():
-                click.echo("✅ OK")
+                click.echo("[OK]")
             else:
-                click.echo("❌ Failed")
+                click.echo("[FAILED]")
         except Exception as e:
-            click.echo(f"❌ Failed: {e}")
+            click.echo(f"[FAILED]: {e}")
     else:
         click.echo("Radarr: Disabled")
     
@@ -186,11 +186,11 @@ def test_config(ctx):
         try:
             sonarr_exporter = SonarrExporter(config)
             if sonarr_exporter.test_connection():
-                click.echo("✅ OK")
+                click.echo("[OK]")
             else:
-                click.echo("❌ Failed")
+                click.echo("[FAILED]")
         except Exception as e:
-            click.echo(f"❌ Failed: {e}")
+            click.echo(f"[FAILED]: {e}")
     else:
         click.echo("Sonarr: Disabled")
     

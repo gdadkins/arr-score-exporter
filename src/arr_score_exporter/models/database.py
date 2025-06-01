@@ -281,6 +281,9 @@ class DatabaseManager:
             try:
                 with self._lock:
                     with self._get_connection() as conn:
+                        # For Radarr/Sonarr, clean up old file records for the same movie/episode when a new file is detected
+                        self._cleanup_old_file_records(conn, media_file)
+                        
                         # Check if file already exists
                         existing = conn.execute(
                             "SELECT total_score FROM media_files WHERE unique_identifier = ?",
@@ -380,6 +383,9 @@ class DatabaseManager:
                         processed = 0
                         for media_file in media_files:
                             try:
+                                # For Radarr/Sonarr, clean up old file records for the same movie/episode when a new file is detected
+                                self._cleanup_old_file_records(conn, media_file)
+                                
                                 # Check if file already exists
                                 existing = conn.execute(
                                     "SELECT total_score FROM media_files WHERE unique_identifier = ?",
@@ -469,6 +475,75 @@ class DatabaseManager:
         
         return False
     
+    def _cleanup_old_file_records(self, conn, media_file: MediaFile):
+        """Clean up old file records for the same movie/episode when a new file is detected."""
+        try:
+            if media_file.service_type == "radarr" and media_file.movie_id:
+                # For Radarr: Remove old file records for the same movie (different file_id)
+                old_records = conn.execute("""
+                    SELECT unique_identifier, file_id, title 
+                    FROM media_files 
+                    WHERE service_type = 'radarr' 
+                    AND movie_id = ? 
+                    AND file_id != ?
+                """, (media_file.movie_id, media_file.file_id)).fetchall()
+                
+                if old_records:
+                    print(f"Cleaning up {len(old_records)} old file record(s) for movie '{media_file.title}' (movie_id={media_file.movie_id})")
+                    for old_record in old_records:
+                        print(f"  Removing old file_id={old_record[1]} (keeping new file_id={media_file.file_id})")
+                        
+                        # Record the removal in history
+                        self._record_score_history(
+                            conn, old_record[0], 0, None, ScoreChangeType.REMOVED, 
+                            json.dumps({"reason": "File upgraded/replaced"})
+                        )
+                    
+                    # Delete old records
+                    conn.execute("""
+                        DELETE FROM media_files 
+                        WHERE service_type = 'radarr' 
+                        AND movie_id = ? 
+                        AND file_id != ?
+                    """, (media_file.movie_id, media_file.file_id))
+                    
+            elif media_file.service_type == "sonarr" and media_file.series_id and media_file.season_number and media_file.episode_number:
+                # For Sonarr: Remove old file records for the same episode (different file_id)
+                old_records = conn.execute("""
+                    SELECT unique_identifier, file_id, title 
+                    FROM media_files 
+                    WHERE service_type = 'sonarr' 
+                    AND series_id = ? 
+                    AND season_number = ? 
+                    AND episode_number = ? 
+                    AND file_id != ?
+                """, (media_file.series_id, media_file.season_number, media_file.episode_number, media_file.file_id)).fetchall()
+                
+                if old_records:
+                    print(f"Cleaning up {len(old_records)} old file record(s) for episode '{media_file.title}' S{media_file.season_number:02d}E{media_file.episode_number:02d}")
+                    for old_record in old_records:
+                        print(f"  Removing old file_id={old_record[1]} (keeping new file_id={media_file.file_id})")
+                        
+                        # Record the removal in history
+                        self._record_score_history(
+                            conn, old_record[0], 0, None, ScoreChangeType.REMOVED, 
+                            json.dumps({"reason": "File upgraded/replaced"})
+                        )
+                    
+                    # Delete old records
+                    conn.execute("""
+                        DELETE FROM media_files 
+                        WHERE service_type = 'sonarr' 
+                        AND series_id = ? 
+                        AND season_number = ? 
+                        AND episode_number = ? 
+                        AND file_id != ?
+                    """, (media_file.series_id, media_file.season_number, media_file.episode_number, media_file.file_id))
+                    
+        except Exception as e:
+            print(f"Warning: Error during old file cleanup: {e}")
+            # Don't fail the entire operation if cleanup fails
+
     def _determine_change_type(self, old_score: int, new_score: int) -> ScoreChangeType:
         """Determine the type of score change."""
         if new_score > old_score:
@@ -487,7 +562,7 @@ class DatabaseManager:
             ) VALUES (?, ?, ?, ?, ?)
         """, (unique_id, new_score, old_score, change_type.value, custom_formats_json))
     
-    def get_upgrade_candidates(self, min_score: int = -50, service_type: Optional[str] = None) -> List[MediaFile]:
+    def get_upgrade_candidates(self, min_score: int = 50, service_type: Optional[str] = None) -> List[MediaFile]:
         """Get files that are candidates for upgrade based on low scores."""
         query = """
             SELECT * FROM media_files
@@ -674,3 +749,29 @@ class DatabaseManager:
             episode_title=row['episode_title'],
             tvdb_id=row['tvdb_id']
         )
+    
+    def get_zero_score_files(self, service_type: str, limit: Optional[int] = None) -> List[MediaFile]:
+        """
+        Get all files with zero scores for analysis and display.
+        
+        Args:
+            service_type: Type of service ('radarr' or 'sonarr')
+            limit: Optional limit on number of files to return
+            
+        Returns:
+            List of MediaFile objects with zero scores
+        """
+        with self._get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            
+            query = """
+                SELECT * FROM media_files 
+                WHERE service_type = ? AND total_score = 0
+                ORDER BY recorded_at DESC
+            """
+            
+            if limit:
+                query += f" LIMIT {limit}"
+            
+            rows = conn.execute(query, (service_type,)).fetchall()
+            return [self._row_to_media_file(row) for row in rows]

@@ -184,6 +184,14 @@ mypy src/                 # Type checking
 
 ## Recent Updates (v2.0)
 
+### ✅ CRITICAL FIX: HTML Reports Fully Restored
+**All interactive functionality has been restored** after addressing JavaScript dependency issues:
+- **Charts Working**: Score distribution, format effectiveness, file size analysis with proper color coding
+- **Export Functions**: CSV, Excel, PDF export buttons fully operational
+- **Interactive Tables**: Pagination, search, sorting for upgrade candidates
+- **Tooltips & UI**: Bootstrap 5 integration with responsive design
+
+### Core Features
 - Interactive HTML dashboards with Chart.js
 - Intelligent upgrade candidate detection
 - SQLite database with historical tracking

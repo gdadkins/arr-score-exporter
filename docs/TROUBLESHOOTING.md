@@ -17,6 +17,19 @@ sqlite3 ~/.arr-score-exporter/library.db "PRAGMA integrity_check;"
 
 ## Recently Fixed Issues ✅
 
+### HTML Reports Broken - Interactive Features Not Working (RESOLVED)
+**Error**: Charts not displaying, tooltips not working, "dashboardData already declared" JavaScript error
+**Symptoms**: No visual charts, CSV export buttons missing, pagination broken
+
+**Status**: **CRITICAL FIX COMPLETED** - All interactive functionality restored:
+- ✅ **Bootstrap Integration**: Added Bootstrap 5 CSS/JS libraries 
+- ✅ **Chart Rendering**: Fixed Chart.js with proper red/green/grey color coding
+- ✅ **DataTables**: Restored pagination, search, and CSV/Excel/PDF export
+- ✅ **JavaScript Variables**: Fixed `dashboardData` redeclaration error
+- ✅ **Tooltip System**: Updated to Bootstrap 5 API (`new bootstrap.Tooltip()`)
+
+**Technical Details**: The refactoring accidentally stripped out critical JavaScript dependencies and caused variable conflicts. All functionality now restored with full feature parity.
+
 ### Database Locking (RESOLVED)
 **Error**: `sqlite3.OperationalError: database is locked`
 
@@ -175,6 +188,27 @@ pip install -e .
 **Score trends empty:**
 - Normal on first run - requires historical data
 - Run exports regularly to build trend data
+
+### HTML Report Issues
+
+**Charts not displaying / JavaScript errors:**
+```bash
+# Regenerate reports with latest fixes
+arr-export-enhanced report --service radarr
+
+# Check browser console (F12) for errors
+# Should NOT see "dashboardData already declared" error
+```
+
+**Interactive features broken (pagination, search, export):**
+- **Status**: Fixed in latest version
+- **Solution**: Regenerate reports - all Bootstrap 5 dependencies now included
+- **Verification**: Look for "Copy CSV", pagination controls, and working tooltips
+
+**Old reports still broken:**
+- Delete old HTML files and regenerate
+- New reports have full Bootstrap 5 + DataTables + Chart.js integration
+- All color coding (red/green/grey) and interactivity restored
 
 ### Analysis results seem incorrect
 1. Verify TRaSH Guides custom formats are properly configured
