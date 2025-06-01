@@ -29,10 +29,11 @@ arr-export-enhanced report --service sonarr    # No API calls, uses cached data
 
 ### 2. Enhanced Analysis (`arr-export-enhanced`)
 - Collects data with CSV export
-- Creates interactive HTML dashboards with visual charts
-- File size vs score scatter plots
-- Intelligent upgrade recommendations
-- Historical tracking
+- Creates interactive HTML dashboards with visual charts and export functionality
+- File size vs score scatter plots for correlation analysis
+- Intelligent upgrade recommendations with priority ranking
+- Historical tracking with trend analysis
+- Professional UI with Bootstrap 5 integration and responsive design
 
 ## Basic Usage Examples
 
@@ -129,6 +130,8 @@ arr-export radarr
 - **C (70-79)**: Average quality
 - **D (60-69)**: Below average, needs attention
 - **F (<60)**: Poor quality, immediate attention needed
+
+**Dashboard Display**: Total library size automatically displays in TB for large collections (>1TB) for better readability.
 
 ### Upgrade Candidate Priorities
 - **Priority 1**: Critical - Files with harmful formats (Cam, TS)

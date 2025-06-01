@@ -112,10 +112,12 @@ trends = analyzer.analyze_historical_trends("radarr")
 ```
 
 ### HTML Reporter (`reporting/html_reporter.py`)
-- Interactive HTML reports with Chart.js visualizations
-- Responsive design with mobile support
-- Export functionality and filtering built-in
+- Interactive HTML reports with Chart.js visualizations and proper dependency management
+- Responsive design with mobile support using Bootstrap 5
+- Export functionality (CSV/Excel/PDF) with DataTables integration (jszip, pdfmake)
 - Enhanced visualizations: scatter plots, heatmaps, impact matrices
+- Smart display formatting: file sizes in TB for large libraries (>1TB) for better readability
+- Fixed JavaScript variable conflicts and chart initialization errors
 
 ```python
 reporter = HTMLReporter()
@@ -283,6 +285,11 @@ html_path = reporter.generate_library_health_report(
 - Thread safety implemented throughout the codebase
 - Memory optimization for large libraries (5000+ files)
 - Enhanced dashboard performance with optimized chart rendering
+- **HTML Report Disaster Recovery**: Fixed critical JavaScript dependency chain issues
+- **DataTables Export**: Restored CSV/Excel/PDF export functionality with proper dependencies
+- **Chart Rendering**: Fixed Chart.js integration and variable declaration conflicts
+- **Bootstrap Integration**: Updated to Bootstrap 5 with proper tooltip API compatibility
+- **File Size Display**: Improved readability with automatic TB conversion for large libraries
 
 ### Dashboard Features ✅
 - **Library Health Score**: A-F grading system with detailed breakdown
@@ -292,6 +299,7 @@ html_path = reporter.generate_library_health_report(
 - **Historical Trends**: Time-series analysis with improvement/degradation velocity
 - **Interactive Charts**: Score distribution, profile performance, format impact matrices
 - **Smart Filters**: Dynamic filtering by score range, profiles, priority levels
-- **Export Functionality**: CSV export with filtered data preservation
+- **Export Functionality**: Multiple formats (CSV/Excel/PDF) with filtered data preservation
+- **File Size Display**: Automatic TB conversion for large libraries improving dashboard readability
 
 The architecture has evolved from simple CSV export scripts to a comprehensive library analysis platform with advanced intelligence while maintaining backward compatibility and clean separation of concerns.

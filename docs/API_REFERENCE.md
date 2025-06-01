@@ -52,12 +52,25 @@ arr-export-enhanced [OPTIONS] COMMAND [ARGS]...
 
 **Commands:**
 
+#### `arr-export-enhanced SERVICE`
+Collect fresh data and generate reports (recommended for up-to-date results).
+```bash
+arr-export-enhanced radarr    # Fresh data collection + CSV + HTML dashboard
+arr-export-enhanced sonarr    # Fresh data collection + CSV + HTML dashboard
+```
+
 #### `arr-export-enhanced report --service SERVICE`
-Generate interactive HTML dashboard with analysis.
+Generate HTML dashboard from cached data (no API calls).
 ```bash
 arr-export-enhanced report --service radarr
 arr-export-enhanced report --service sonarr  
 arr-export-enhanced report --service both
+```
+
+#### `arr-export-enhanced validate-config`
+Validate configuration and test API connectivity.
+```bash
+arr-export-enhanced validate-config
 ```
 
 ### Output Comparison
@@ -70,6 +83,9 @@ arr-export-enhanced report --service both
 | Historical Tracking | ❌ | ✅ |
 | Interactive Charts | ❌ | ✅ |
 | Health Scoring | ❌ | ✅ |
+| File Size Display | GB | TB (for large libraries) |
+| Export Functions | Basic | CSV/Excel/PDF |
+| API Data Collection | Real-time | Real-time + Cached |
 
 ## Python API
 
@@ -197,7 +213,8 @@ export ARR_OUTPUT_DIR="/data/exports"
     "analysis_results": {
         "library_health_score": 78.5,
         "health_grade": "B",
-        "total_files": 3231
+        "total_files": 3231,
+        "total_size_display": "21.6 TB"  // Automatically displayed in TB for large libraries
     }
 }
 ```

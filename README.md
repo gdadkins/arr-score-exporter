@@ -115,10 +115,11 @@ python legacy/export_sonarr_scores.py
 ## Output
 
 ### Dashboard (HTML)
-- Library overview with health score
-- Upgrade candidates list
-- Custom format effectiveness
-- Historical trends
+- Library overview with health score and metrics (file counts, sizes displayed in TB for large libraries)
+- Upgrade candidates list with priority ranking
+- Custom format effectiveness analysis
+- Historical trends and improvement tracking
+- Interactive charts with export functionality
 
 ![Dashboard Preview](assets/radarr_html-2.png)
 ![Dashboard Preview](assets/radarr_html-3.png)
@@ -128,6 +129,8 @@ python legacy/export_sonarr_scores.py
 Title,File,Total_Score,Quality_Profile,Codec,Resolution,Custom_Formats
 "The Matrix","Matrix.2160p.mkv",6150,"4K Remux","x265","2160p","Remux Tier 01|HDR10+"
 ```
+
+**Note**: Dashboard displays total library size in TB for large collections (>1TB) for improved readability.
 
 ### Database
 - SQLite storage at `~/.arr-score-exporter/library.db`
@@ -185,11 +188,13 @@ mypy src/                 # Type checking
 ## Recent Updates (v2.0)
 
 ### ✅ CRITICAL FIX: HTML Reports Fully Restored
-**All interactive functionality has been restored** after addressing JavaScript dependency issues:
+**All interactive functionality has been restored** after resolving critical JavaScript dependency issues:
 - **Charts Working**: Score distribution, format effectiveness, file size analysis with proper color coding
-- **Export Functions**: CSV, Excel, PDF export buttons fully operational
-- **Interactive Tables**: Pagination, search, sorting for upgrade candidates
-- **Tooltips & UI**: Bootstrap 5 integration with responsive design
+- **Export Functions**: CSV, Excel, PDF export buttons fully operational (DataTables with jszip, pdfmake)
+- **Interactive Tables**: Pagination, search, sorting for upgrade candidates with proper row limiting
+- **Tooltips & UI**: Bootstrap 5 integration with responsive design and proper tooltip API
+- **File Size Display**: Large libraries now show total size in TB instead of GB for better readability
+- **Performance**: Fixed JavaScript variable conflicts and chart initialization errors
 
 ### Core Features
 - Interactive HTML dashboards with Chart.js

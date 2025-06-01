@@ -113,7 +113,7 @@ class HTMLReporter:
             </div>
             <div class="card">
                 <h3>Total Size</h3>
-                <div class="metric-value">{library_stats.total_size_gb:.1f} GB</div>
+                <div class="metric-value">{library_stats.total_size_gb / 1024:.1f} TB</div>
             </div>
         </div>
 

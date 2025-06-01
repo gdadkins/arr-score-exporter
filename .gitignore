@@ -61,6 +61,7 @@ config.yaml
 # Reports and exports directory contents
 reports/
 exports/
+legacy/
 
 # Development and testing artifacts
 test_*.py

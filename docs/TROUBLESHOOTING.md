@@ -174,14 +174,23 @@ arr-export-enhanced report --service radarr
 ```
 
 **Interactive features broken (pagination, search, export):**
-- **Status**: Fixed in latest version
-- **Solution**: Regenerate reports - all Bootstrap 5 dependencies now included
-- **Verification**: Look for "Copy CSV", pagination controls, and working tooltips
+- **Status**: **FULLY FIXED** in latest version after comprehensive dependency restoration
+- **What was fixed**: 
+  - DataTables export functionality (CSV/Excel/PDF) with complete dependency chain
+  - Bootstrap 5 integration with proper tooltip API
+  - Chart.js rendering with resolved variable conflicts
+  - Color coding system (red/green/grey for score ranges)
+- **Solution**: Regenerate reports using `arr-export-enhanced radarr` for fresh data
+- **Verification**: Look for working export buttons, pagination, search, tooltips, and charts
+
+**File size display improvements:**
+- Large libraries (>1TB) now automatically display total size in TB for better readability
+- Dashboard metrics more user-friendly for large collections
 
 **Old reports still broken:**
-- Delete old HTML files and regenerate
-- New reports have full Bootstrap 5 + DataTables + Chart.js integration
-- All color coding (red/green/grey) and interactivity restored
+- Delete old HTML files and regenerate - critical JavaScript dependencies were missing
+- New reports have complete Bootstrap 5 + DataTables + Chart.js + jszip + pdfmake integration
+- All interactive functionality and visual analytics fully restored
 
 ### Analysis results seem incorrect
 1. Verify TRaSH Guides custom formats are properly configured
