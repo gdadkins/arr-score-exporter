@@ -69,6 +69,10 @@ class LibraryHealthReport:
     recommendations: List[str]
     achievements: List[str]
     warnings: List[str]
+    
+    # Phase 2: Enhanced Analytics
+    historical_analysis: Optional[Dict[str, Any]] = None
+    intelligent_categories: Optional[Dict[str, List[MediaFile]]] = None
 
 
 class IntelligentAnalyzer:
@@ -289,10 +293,174 @@ class IntelligentAnalyzer:
         
         return sorted(effectiveness_list, key=lambda e: e.avg_score_contribution, reverse=True)
     
-    def generate_library_health_report(self, service_type: str) -> LibraryHealthReport:
+    def analyze_historical_trends(self, service_type: str, days: int = 90) -> Dict[str, Any]:
+        """Analyze historical trends and patterns in library health over time."""
+        trends = self.db.get_score_trends(days, service_type)
+        
+        # Group trends by time periods
+        from collections import defaultdict
+        import datetime
+        
+        weekly_data = defaultdict(lambda: {'improvements': 0, 'degradations': 0})
+        monthly_data = defaultdict(lambda: {'improvements': 0, 'degradations': 0})
+        
+        for trend in trends:
+            timestamp = datetime.datetime.fromisoformat(trend['timestamp'])
+            week_key = timestamp.strftime('%Y-W%U')
+            month_key = timestamp.strftime('%Y-%m')
+            
+            if trend['change_type'] == 'improved':
+                weekly_data[week_key]['improvements'] += 1
+                monthly_data[month_key]['improvements'] += 1
+            elif trend['change_type'] == 'degraded':
+                weekly_data[week_key]['degradations'] += 1
+                monthly_data[month_key]['degradations'] += 1
+        
+        # Calculate velocity metrics
+        recent_weeks = sorted(weekly_data.keys())[-4:]  # Last 4 weeks
+        recent_improvements = sum(weekly_data[week]['improvements'] for week in recent_weeks)
+        recent_degradations = sum(weekly_data[week]['degradations'] for week in recent_weeks)
+        
+        improvement_velocity = recent_improvements / 4 if recent_weeks else 0
+        degradation_velocity = recent_degradations / 4 if recent_weeks else 0
+        
+        # Identify patterns
+        patterns = []
+        if improvement_velocity > degradation_velocity * 2:
+            patterns.append("Strong positive trend - library improving rapidly")
+        elif degradation_velocity > improvement_velocity * 2:
+            patterns.append("Concerning trend - library quality declining")
+        elif improvement_velocity > 0 and degradation_velocity == 0:
+            patterns.append("Perfect optimization - only improvements detected")
+        elif abs(improvement_velocity - degradation_velocity) < 0.5:
+            patterns.append("Stable library - minimal quality changes")
+        
+        # Generate recommendations based on trends
+        trend_recommendations = []
+        if degradation_velocity > improvement_velocity:
+            trend_recommendations.append("Focus on preventing quality degradation")
+            trend_recommendations.append("Review recent releases that scored lower")
+        elif improvement_velocity > 2:
+            trend_recommendations.append("Excellent progress! Consider documenting successful practices")
+        elif improvement_velocity == 0 and degradation_velocity == 0:
+            trend_recommendations.append("Consider proactive library optimization")
+        
+        return {
+            'weekly_data': dict(weekly_data),
+            'monthly_data': dict(monthly_data),
+            'improvement_velocity': improvement_velocity,
+            'degradation_velocity': degradation_velocity,
+            'net_velocity': improvement_velocity - degradation_velocity,
+            'patterns': patterns,
+            'recommendations': trend_recommendations,
+            'total_changes': len(trends)
+        }
+    
+    def categorize_files_intelligently(self, service_type: str) -> Dict[str, List[MediaFile]]:
+        """Intelligently categorize files based on patterns, scores, and metadata."""
+        # Get all files for the service
+        with self.db._get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute("""
+                SELECT * FROM media_files 
+                WHERE service_type = ?
+                ORDER BY total_score DESC
+            """, (service_type,)).fetchall()
+        
+        files = [self.db._row_to_media_file(row) for row in rows]
+        
+        categories = {
+            'premium_quality': [],      # High score, good formats
+            'acceptable_quality': [],   # Mid-range scores
+            'upgrade_worthy': [],       # Low scores but salvageable
+            'priority_replacements': [], # Very poor quality
+            'large_low_quality': [],    # Size/quality mismatch
+            'format_optimized': [],     # Good format usage
+            'legacy_content': [],       # Old/problematic formats
+            'hdr_candidates': [],       # 4K files missing HDR
+            'audio_upgrade_candidates': [], # Files with poor audio
+            'resolution_mismatches': []  # Quality/resolution issues
+        }
+        
+        stats = self.db.calculate_library_stats(service_type)
+        avg_score = stats.avg_score
+        
+        for file in files:
+            # Premium quality: High scores with good formats
+            if file.total_score > max(75, avg_score + 30):
+                categories['premium_quality'].append(file)
+            
+            # Acceptable quality: Around average or better
+            elif file.total_score >= max(0, avg_score - 10):
+                categories['acceptable_quality'].append(file)
+            
+            # Priority replacements: Very poor scores
+            elif file.total_score < -50:
+                categories['priority_replacements'].append(file)
+            
+            # Upgrade worthy: Poor but not terrible
+            elif file.total_score < avg_score - 20:
+                categories['upgrade_worthy'].append(file)
+            
+            # Size/quality analysis
+            if file.size_bytes and stats.avg_file_size_gb > 0:
+                file_size_gb = file.size_bytes / (1024**3)
+                if file_size_gb > stats.avg_file_size_gb * 1.5 and file.total_score < 0:
+                    categories['large_low_quality'].append(file)
+            
+            # Format analysis
+            format_names = [cf.name.upper() for cf in file.custom_formats]
+            
+            # HDR candidates (4K without HDR)
+            if (file.resolution and "2160" in file.resolution and 
+                not any("HDR" in name or "DOLBY" in name for name in format_names)):
+                categories['hdr_candidates'].append(file)
+            
+            # Audio upgrade candidates
+            poor_audio_formats = ["AAC", "MP3", "OPUS"]
+            if any(audio in name for name in format_names for audio in poor_audio_formats):
+                categories['audio_upgrade_candidates'].append(file)
+            
+            # Legacy content detection
+            legacy_formats = ["XVID", "DIVX", "YIFY", "RARBG", "AXXO"]
+            if any(legacy in name for name in format_names for legacy in legacy_formats):
+                categories['legacy_content'].append(file)
+            
+            # Format optimized (good format usage)
+            premium_formats = ["REMUX", "BLURAY", "UHD", "ATMOS", "DTS-HD", "TRUEHD"]
+            if (any(premium in name for name in format_names for premium in premium_formats) 
+                and file.total_score > 50):
+                categories['format_optimized'].append(file)
+            
+            # Resolution mismatches
+            if (file.resolution and file.quality and 
+                (("1080p" in str(file.resolution) and "720p" in str(file.quality)) or
+                ("2160p" in str(file.resolution) and "1080p" in str(file.quality)))):
+                categories['resolution_mismatches'].append(file)
+        
+        # Remove files from multiple categories (prioritize more specific categories)
+        priority_order = [
+            'priority_replacements', 'large_low_quality', 'hdr_candidates',
+            'audio_upgrade_candidates', 'legacy_content', 'resolution_mismatches',
+            'upgrade_worthy', 'format_optimized', 'premium_quality', 'acceptable_quality'
+        ]
+        
+        assigned_files = set()
+        cleaned_categories = {}
+        
+        for category in priority_order:
+            cleaned_categories[category] = [
+                f for f in categories[category] 
+                if f.unique_identifier not in assigned_files
+            ]
+            assigned_files.update(f.unique_identifier for f in cleaned_categories[category])
+        
+        return cleaned_categories
+    
+    def generate_library_health_report(self, service_type: str, min_score_threshold: int = -50) -> LibraryHealthReport:
         """Generate comprehensive library health report."""
         stats = self.db.calculate_library_stats(service_type)
-        candidates = self.identify_upgrade_candidates(service_type)
+        candidates = self.identify_upgrade_candidates(service_type, min_score_threshold)
         profile_analysis = self.analyze_quality_profiles(service_type)
         format_effectiveness = self.analyze_custom_format_effectiveness(service_type)
         
@@ -370,17 +538,48 @@ class IntelligentAnalyzer:
             warnings.append("Library quality declining")
             recommendations.append("Investigate why scores are degrading")
         
-        return LibraryHealthReport(
+        # Phase 2: Generate enhanced analytics
+        historical_analysis = self.analyze_historical_trends(service_type)
+        intelligent_categories = self.categorize_files_intelligently(service_type)
+        
+        # Add insights from historical analysis
+        if historical_analysis['patterns']:
+            for pattern in historical_analysis['patterns']:
+                if 'positive' in pattern.lower():
+                    achievements.append(pattern)
+                elif 'concerning' in pattern.lower() or 'declining' in pattern.lower():
+                    warnings.append(pattern)
+        
+        # Add insights from intelligent categorization
+        category_insights = []
+        if intelligent_categories['premium_quality']:
+            category_insights.append(f"{len(intelligent_categories['premium_quality'])} files are premium quality")
+        if intelligent_categories['priority_replacements']:
+            category_insights.append(f"{len(intelligent_categories['priority_replacements'])} files need immediate replacement")
+        if intelligent_categories['hdr_candidates']:
+            category_insights.append(f"{len(intelligent_categories['hdr_candidates'])} 4K files missing HDR")
+        
+        if len(intelligent_categories['premium_quality']) > len(intelligent_categories['priority_replacements']) * 2:
+            achievements.append("Library has strong quality distribution")
+        
+        # Store the threshold used for transparency
+        report = LibraryHealthReport(
             service_type=service_type,
             generated_at=datetime.now(),
             health_score=health_score,
             health_grade=health_grade,
             total_files=stats.total_files,
-            upgrade_candidates=candidates[:20],  # Top 20 candidates
+            upgrade_candidates=candidates,  # All candidates (pagination handled in UI)
             quality_profile_analysis=profile_analysis,
             format_effectiveness=format_effectiveness[:15],  # Top 15 formats
             score_trends=score_trends,
             recommendations=recommendations,
             achievements=achievements,
-            warnings=warnings
+            warnings=warnings,
+            historical_analysis=historical_analysis,
+            intelligent_categories=intelligent_categories
         )
+        
+        # Add threshold info for display (store as custom attribute)
+        report.min_score_threshold = min_score_threshold
+        return report

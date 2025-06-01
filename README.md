@@ -12,6 +12,7 @@ Extracts TRaSH Guides custom format scores from Radarr/Sonarr and generates inte
 
 - **Export & Analysis**: Extract scores from Radarr/Sonarr with upgrade candidate detection
 - **Interactive Dashboards**: HTML reports with charts showing library health and recommendations
+- **File Size Analysis**: Visual scatter plots showing file size vs score correlations
 - **Historical Tracking**: Monitor score changes and improvements over time
 - **CSV/JSON Export**: Multiple output formats for further analysis
 
@@ -28,9 +29,9 @@ cp config.yaml.example config.yaml
 # Edit config.yaml with your URLs and API keys
 
 # Test and run
-arr-export test-config
-arr-export radarr                                   # CSV export
-arr-export-enhanced report --service radarr        # HTML dashboard
+arr-export-enhanced validate-config                # Test API connections
+arr-export-enhanced radarr                         # Collect data + CSV export
+arr-export-enhanced report --service radarr        # Generate HTML dashboard
 ```
 
 ## Requirements

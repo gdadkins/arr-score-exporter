@@ -9,10 +9,12 @@ Detailed examples and workflows for the *Arr Custom Format Score Exporter.
 - Simple command-line interface
 - Good for data analysis and automation
 
-### 2. Enhanced Dashboards (`arr-export-enhanced`)
-- Creates interactive HTML dashboards
-- Includes all CSV data plus visual analysis
+### 2. Enhanced Analysis (`arr-export-enhanced`)
+- Collects data with CSV export
+- Creates interactive HTML dashboards with visual charts
+- File size vs score scatter plots
 - Intelligent upgrade recommendations
+- Historical tracking
 
 ## Basic Usage Examples
 
@@ -31,13 +33,16 @@ arr-export --output-dir /data/exports radarr
 arr-export --config production.yaml radarr
 ```
 
-### Enhanced Dashboard Export
+### Enhanced Analysis Workflow
 ```bash
-# Generate interactive dashboard for Radarr
+# Step 1: Collect data and generate CSV
+arr-export-enhanced radarr
+
+# Step 2: Generate interactive dashboard
 arr-export-enhanced report --service radarr
 
-# Generate for Sonarr
-arr-export-enhanced report --service sonarr
+# One-time setup: Validate configuration
+arr-export-enhanced validate-config
 
 # Generate for both services
 arr-export-enhanced report --service both

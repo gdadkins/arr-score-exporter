@@ -6,10 +6,10 @@ Quick solutions for common issues with the *Arr Custom Format Score Exporter.
 
 ```bash
 # Test everything
-arr-export test-config
+arr-export-enhanced validate-config
 
 # Detailed logging
-arr-export --verbose radarr
+arr-export-enhanced radarr --verbose
 
 # Check database health
 sqlite3 ~/.arr-score-exporter/library.db "PRAGMA integrity_check;"
@@ -23,9 +23,13 @@ sqlite3 ~/.arr-score-exporter/library.db "PRAGMA integrity_check;"
 **Status**: **FIXED** in v2.0 with enhanced connection management and WAL mode.
 
 If you still see this error:
-1. Ensure you're using the enhanced CLI: `arr-export` or `arr-export-enhanced`
+1. Ensure you're using the enhanced CLI: `arr-export-enhanced`
 2. Check write permissions: `ls -la ~/.arr-score-exporter/`
 3. Reset database if needed: `rm ~/.arr-score-exporter/library.db`
+
+### File Size Data Not Tracked (RESOLVED)
+**Error**: Scatter plot shows "File size data not tracked" message
+**Status**: **FIXED** in v2.0.1 - scatter plot now uses all library files with size data
 
 ### Custom Format Analysis Empty (RESOLVED)
 **Error**: Custom format effectiveness showing no results

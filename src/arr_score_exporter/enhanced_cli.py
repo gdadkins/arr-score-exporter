@@ -287,11 +287,20 @@ def report(service: str, output_dir: Optional[Path]):
         
         db_manager = DatabaseManager()
         analyzer = IntelligentAnalyzer(db_manager)
-        html_reporter = HTMLReporter(output_dir)
+        html_reporter = HTMLReporter(output_dir, db_manager)
         
         with console.status(f"[bold green]Generating {service} health report..."):
-            health_report = analyzer.generate_library_health_report(service)
+            # Check if we have data first
             library_stats = db_manager.calculate_library_stats(service)
+            
+            if library_stats.total_files == 0:
+                console.print(f"[bold yellow]⚠️ No data found for {service}![/bold yellow]")
+                console.print(f"[dim]You need to collect data first by running:[/dim]")
+                console.print(f"[bold cyan]arr-export-enhanced {service}[/bold cyan]")
+                console.print(f"[dim]This will download and analyze your {service} library, then you can generate reports.[/dim]")
+                sys.exit(1)
+            
+            health_report = analyzer.generate_library_health_report(service)
             
             report_path = html_reporter.generate_library_health_report(
                 health_report, library_stats

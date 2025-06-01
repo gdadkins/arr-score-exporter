@@ -66,3 +66,6 @@ exports/
 test_*.py
 check_*.py
 run_*.py
+agent-todo.md
+src/arr_score_exporter/models/database.py
+src/arr_score_exporter/models/database.py

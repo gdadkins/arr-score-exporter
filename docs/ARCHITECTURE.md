@@ -32,8 +32,14 @@ Technical design and implementation patterns for the *Arr Custom Format Score Ex
                                  │
                                  ▼
       ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-      │ DatabaseManager │    │ Analysis Engine │    │ Dashboard Gen   │
-      │ (SQLite + WAL)  │    │ (Intelligence)  │    │ (HTML + Charts) │
+      │ DatabaseManager │    │ Analysis Engine │    │ HTML Reporter   │
+      │ (SQLite + WAL)  │    │ (Intelligence)  │    │ (Charts + Dash) │
+      └─────────────────┘    └─────────────────┘    └─────────────────┘
+               │                       │                       │
+               ▼                       ▼                       ▼
+      ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+      │ Historical Data │    │ Smart Analysis  │    │ Interactive UI  │
+      │ Score Tracking  │    │ Upgrade Detection│    │ Chart.js + CSS │
       └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
@@ -90,27 +96,32 @@ stats = db.calculate_library_stats("radarr")
 ```
 
 ### Analysis Engine (`analysis/analyzer.py`)
-- Upgrade candidate identification
-- Custom format effectiveness analysis
-- Library health scoring
+- Intelligent upgrade candidate identification with priority scoring
+- Custom format effectiveness analysis and impact ratings
+- Library health scoring with A-F grading system
+- Historical trend analysis with velocity metrics
+- Smart file categorization (premium, upgrade-worthy, problematic)
+- Quality profile performance analysis
 
 ```python
 analyzer = IntelligentAnalyzer(db)
 candidates = analyzer.identify_upgrade_candidates("radarr")
 health = analyzer.generate_library_health_report("radarr")
+categories = analyzer.categorize_files_intelligently("radarr")
+trends = analyzer.analyze_historical_trends("radarr")
 ```
 
-### Dashboard Generator (`reporting/dashboard.py`)
-- Interactive HTML reports with Chart.js
+### HTML Reporter (`reporting/html_reporter.py`)
+- Interactive HTML reports with Chart.js visualizations
 - Responsive design with mobile support
-- Export functionality built-in
+- Export functionality and filtering built-in
+- Enhanced visualizations: scatter plots, heatmaps, impact matrices
 
 ```python
-generator = DashboardGenerator()
-html_path = generator.generate_dashboard(
-    service_type="radarr",
-    media_files=files,
-    analysis_results=analysis
+reporter = HTMLReporter()
+html_path = reporter.generate_library_health_report(
+    health_report=health_report,
+    library_stats=library_stats
 )
 ```
 
@@ -125,11 +136,12 @@ html_path = generator.generate_dashboard(
 
 ### Enhanced Dashboard Export
 1. **Configuration** → Same as basic export
-2. **Database Setup** → Initialize SQLite with WAL mode
+2. **Database Setup** → Initialize SQLite with WAL mode for concurrency
 3. **Data Collection** → Fetch and store in database with historical tracking
-4. **Analysis** → Run intelligent analysis algorithms
-5. **Dashboard** → Generate interactive HTML with charts
-6. **Export** → Create both CSV and HTML outputs
+4. **Intelligent Analysis** → Run upgrade detection, format analysis, trend analysis
+5. **Dashboard Generation** → Create interactive HTML with Chart.js visualizations
+6. **Export** → Generate both CSV and comprehensive HTML dashboard
+7. **Historical Tracking** → Store score changes and library evolution data
 
 ## Concurrency Model
 
@@ -254,17 +266,32 @@ html_path = generator.generate_dashboard(
 ## Current State (v2.0)
 
 ### Implemented ✅
-- Enhanced database architecture with SQLite WAL mode
-- Intelligent analysis engine with upgrade recommendations
-- Interactive HTML dashboards with Chart.js
-- Historical tracking and trend analysis
-- Modern CLI with rich terminal output
-- Robust error handling and retry mechanisms
+- **Enhanced Database Architecture**: SQLite WAL mode with historical score tracking
+- **Intelligent Analysis Engine**: AI-powered upgrade recommendations with priority scoring
+- **Interactive HTML Dashboards**: Chart.js visualizations with responsive design
+- **Advanced Analytics**: Score distribution, format effectiveness, quality profile analysis
+- **Smart Categorization**: Automatic file classification into 10 intelligent categories
+- **Historical Trend Analysis**: Velocity metrics and pattern detection
+- **Enhanced Visualizations**: Scatter plots, heatmaps, impact matrices
+- **Dashboard Interactivity**: Filtering, sorting, export functionality
+- **Modern CLI**: Rich terminal output with progress indicators
+- **Robust Error Handling**: Comprehensive retry mechanisms and graceful degradation
 
 ### Recently Fixed ✅
-- Database locking issues resolved
-- Custom format analysis correlation improved
-- Thread safety implemented throughout
-- Memory optimization for large libraries
+- Database locking issues resolved with WAL mode implementation
+- Custom format analysis correlation improved with intelligent algorithms
+- Thread safety implemented throughout the codebase
+- Memory optimization for large libraries (5000+ files)
+- Enhanced dashboard performance with optimized chart rendering
 
-The architecture has evolved from simple CSV export scripts to a comprehensive library analysis platform while maintaining backward compatibility and clean separation of concerns.
+### Dashboard Features ✅
+- **Library Health Score**: A-F grading system with detailed breakdown
+- **Upgrade Candidates**: Priority-ranked recommendations with potential score gains
+- **Format Effectiveness**: Impact analysis of custom formats with usage statistics
+- **Quality Profile Analysis**: Performance comparison across different profiles
+- **Historical Trends**: Time-series analysis with improvement/degradation velocity
+- **Interactive Charts**: Score distribution, profile performance, format impact matrices
+- **Smart Filters**: Dynamic filtering by score range, profiles, priority levels
+- **Export Functionality**: CSV export with filtered data preservation
+
+The architecture has evolved from simple CSV export scripts to a comprehensive library analysis platform with advanced intelligence while maintaining backward compatibility and clean separation of concerns.

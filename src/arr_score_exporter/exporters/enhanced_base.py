@@ -148,20 +148,42 @@ class CacheManager:
             self.logger.warning(f"Cache write error: {e}")
     
     def clear_expired(self):
-        """Remove expired cache entries."""
+        """Remove expired cache entries (optimized for large cache directories)."""
         try:
-            for cache_file in self.cache_dir.glob("*.json"):
+            cache_files = list(self.cache_dir.glob("*.json"))
+            if not cache_files:
+                return
+                
+            # Limit cleanup operations to avoid long delays
+            max_files_to_check = min(100, len(cache_files))
+            now = datetime.now()
+            removed_count = 0
+            
+            for cache_file in cache_files[:max_files_to_check]:
                 try:
+                    # Quick check using file modification time first
+                    file_age = now - datetime.fromtimestamp(cache_file.stat().st_mtime)
+                    if file_age > self.ttl * 2:  # Quick removal for very old files
+                        cache_file.unlink()
+                        removed_count += 1
+                        continue
+                        
+                    # Detailed check for borderline files
                     with open(cache_file, 'r') as f:
                         cached_data = json.load(f)
                     
                     cached_time = datetime.fromisoformat(cached_data['timestamp'])
-                    if datetime.now() - cached_time > self.ttl:
+                    if now - cached_time > self.ttl:
                         cache_file.unlink()
+                        removed_count += 1
                         
                 except Exception:
                     # Remove corrupted cache files
                     cache_file.unlink()
+                    removed_count += 1
+            
+            if removed_count > 0:
+                self.logger.debug(f"Cleaned {removed_count} expired cache entries")
                     
         except Exception as e:
             self.logger.warning(f"Cache cleanup error: {e}")
@@ -469,10 +491,6 @@ class EnhancedBaseExporter(ABC):
                     try:
                         media_file = self.create_media_file(item_info, details)
                         media_files.append(media_file)
-                        
-                        # Store in database if enabled
-                        if self.db_manager:
-                            self.db_manager.store_media_file(media_file)
                             
                     except Exception as e:
                         self.logger.warning(f"Error processing file {file_id}: {e}")
@@ -481,6 +499,18 @@ class EnhancedBaseExporter(ABC):
                 
                 if self.progress:
                     self.progress.processed_items += 1
+            
+            # Batch store in database for better performance
+            if self.db_manager and media_files:
+                self.progress.current_phase = "Storing to database"
+                self.logger.info(f"Storing {len(media_files)} files to database...")
+                start_db_time = datetime.now()
+                success = self.db_manager.store_media_files_batch(media_files)
+                db_duration = datetime.now() - start_db_time
+                if success:
+                    self.logger.info(f"Database storage completed in {db_duration}")
+                else:
+                    self.logger.warning(f"Database storage had issues after {db_duration}")
             
             # Phase 4: Generate outputs
             self.progress.current_phase = "Generating outputs"
@@ -505,7 +535,12 @@ class EnhancedBaseExporter(ABC):
             self.logger.error(f"Export failed: {e}")
             return False
         finally:
+            # Cleanup with progress logging
+            self.logger.info("Cleaning up resources...")
+            cleanup_start = datetime.now()
             self.client.close()
+            cleanup_duration = datetime.now() - cleanup_start
+            self.logger.info(f"Cleanup completed in {cleanup_duration}")
     
     def _generate_outputs(self, media_files: List[MediaFile]):
         """Generate output files in requested formats."""

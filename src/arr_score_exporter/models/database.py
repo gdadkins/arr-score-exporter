@@ -362,6 +362,113 @@ class DatabaseManager:
         
         return False  # If all retries failed
     
+    def store_media_files_batch(self, media_files: List[MediaFile]) -> bool:
+        """Store multiple media files in a single transaction for better performance."""
+        if not media_files:
+            return True
+            
+        max_retries = 3
+        retry_delay = 0.1
+        
+        for attempt in range(max_retries):
+            try:
+                with self._lock:
+                    with self._get_connection() as conn:
+                        # Use a single transaction for all files
+                        conn.execute("BEGIN TRANSACTION")
+                        
+                        processed = 0
+                        for media_file in media_files:
+                            try:
+                                # Check if file already exists
+                                existing = conn.execute(
+                                    "SELECT total_score FROM media_files WHERE unique_identifier = ?",
+                                    (media_file.unique_identifier,)
+                                ).fetchone()
+                                
+                                custom_formats_json = json.dumps([cf.__dict__ for cf in media_file.custom_formats])
+                                
+                                if existing:
+                                    # Update existing record
+                                    previous_score = existing[0]
+                                    change_type = self._determine_change_type(previous_score, media_file.total_score)
+                                    
+                                    conn.execute("""
+                                        UPDATE media_files SET
+                                            file_id = ?, relative_path = ?, title = ?, total_score = ?,
+                                            custom_formats_json = ?, quality_profile_id = ?, quality_profile_name = ?,
+                                            quality = ?, codec = ?, resolution = ?, size_bytes = ?,
+                                            recorded_at = ?, file_modified_at = ?, service_type = ?,
+                                            movie_id = ?, imdb_id = ?, tmdb_id = ?, series_id = ?,
+                                            season_number = ?, episode_number = ?, episode_title = ?, tvdb_id = ?
+                                        WHERE unique_identifier = ?
+                                    """, (
+                                        media_file.file_id, media_file.relative_path, media_file.title,
+                                        media_file.total_score, custom_formats_json, media_file.quality_profile_id,
+                                        media_file.quality_profile_name, media_file.quality, media_file.codec,
+                                        media_file.resolution, media_file.size_bytes, media_file.recorded_at,
+                                        media_file.file_modified_at, media_file.service_type, media_file.movie_id,
+                                        media_file.imdb_id, media_file.tmdb_id, media_file.series_id,
+                                        media_file.season_number, media_file.episode_number, media_file.episode_title,
+                                        media_file.tvdb_id, media_file.unique_identifier
+                                    ))
+                                    
+                                    # Record score history if score changed
+                                    if change_type != ScoreChangeType.UNCHANGED:
+                                        self._record_score_history(
+                                            conn, media_file.unique_identifier, media_file.total_score,
+                                            previous_score, change_type, custom_formats_json
+                                        )
+                                else:
+                                    # Insert new record
+                                    conn.execute("""
+                                        INSERT INTO media_files (
+                                            unique_identifier, file_id, relative_path, title, total_score,
+                                            custom_formats_json, quality_profile_id, quality_profile_name,
+                                            quality, codec, resolution, size_bytes, recorded_at, file_modified_at,
+                                            service_type, movie_id, imdb_id, tmdb_id, series_id,
+                                            season_number, episode_number, episode_title, tvdb_id
+                                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    """, (
+                                        media_file.unique_identifier, media_file.file_id, media_file.relative_path,
+                                        media_file.title, media_file.total_score, custom_formats_json,
+                                        media_file.quality_profile_id, media_file.quality_profile_name,
+                                        media_file.quality, media_file.codec, media_file.resolution,
+                                        media_file.size_bytes, media_file.recorded_at, media_file.file_modified_at,
+                                        media_file.service_type, media_file.movie_id, media_file.imdb_id,
+                                        media_file.tmdb_id, media_file.series_id, media_file.season_number,
+                                        media_file.episode_number, media_file.episode_title, media_file.tvdb_id
+                                    ))
+                                    
+                                    # Record as new file in history
+                                    self._record_score_history(
+                                        conn, media_file.unique_identifier, media_file.total_score,
+                                        None, ScoreChangeType.NEW_FILE, custom_formats_json
+                                    )
+                                
+                                processed += 1
+                                
+                            except Exception as e:
+                                print(f"Error processing file {media_file.unique_identifier}: {e}")
+                                continue
+                        
+                        conn.execute("COMMIT")
+                        print(f"Successfully stored {processed}/{len(media_files)} files to database")
+                        return True
+                        
+            except sqlite3.OperationalError as e:
+                if "database is locked" in str(e) and attempt < max_retries - 1:
+                    time.sleep(retry_delay * (2 ** attempt))
+                    continue
+                else:
+                    print(f"Database lock error after {max_retries} attempts: {e}")
+                    return False
+            except Exception as e:
+                print(f"Error in batch storage: {e}")
+                return False
+        
+        return False
+    
     def _determine_change_type(self, old_score: int, new_score: int) -> ScoreChangeType:
         """Determine the type of score change."""
         if new_score > old_score:
@@ -393,6 +500,27 @@ class DatabaseManager:
             params.append(service_type)
         
         query += " ORDER BY total_score ASC, title ASC"
+        
+        with self._get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(query, params).fetchall()
+        
+        return [self._row_to_media_file(row) for row in rows]
+    
+    def get_files_with_size_data(self, service_type: Optional[str] = None, limit: int = 100) -> List[MediaFile]:
+        """Get files that have size data for scatter plot visualization."""
+        query = """
+            SELECT * FROM media_files
+            WHERE size_bytes IS NOT NULL AND size_bytes > 0
+        """
+        params = []
+        
+        if service_type:
+            query += " AND service_type = ?"
+            params.append(service_type)
+        
+        query += " ORDER BY total_score DESC, size_bytes DESC LIMIT ?"
+        params.append(limit)
         
         with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
